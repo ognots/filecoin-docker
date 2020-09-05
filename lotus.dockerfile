@@ -1,25 +1,38 @@
 # build container stage
-FROM golang:1.13 AS build-env
+FROM golang:1.14 AS build-env
+ENV RUSTFLAGS="-C target-cpu=native -g"
+ENV FFI_BUILD_FROM_SOURCE=1
 RUN apt-get update -y && \
     apt-get install sudo curl git mesa-opencl-icd ocl-icd-opencl-dev gcc git bzr jq pkg-config -y
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup-init.sh && \
+    chmod +x rustup-init.sh && \
+    ./rustup-init.sh -y 
+ENV PATH="$PATH:/root/.cargo/bin"
 RUN git clone https://github.com/filecoin-project/lotus.git && \
     cd lotus && \
     git pull && \
     git fetch --tags && \
     latestTag=$(git describe --tags `git rev-list --tags --max-count=1`) && \
-    git checkout $latestTag && \
-    make clean && \
-    make lotus chainwatch && \
+    #git checkout $latestTag && \
+    git checkout v0.5.6 && \
+    #git checkout next && \
+    /bin/bash -c "source /root/.cargo/env" && \
+    make clean deps build lotus-bench && \
     install -C ./lotus /usr/local/bin/lotus && \
-    install -C ./chainwatch /usr/local/bin/chainwatch
+    install -C ./lotus-miner /usr/local/bin/lotus-miner && \
+    install -C ./lotus-worker /usr/local/bin/lotus-worker && \
+    install -C ./lotus-bench /usr/local/bin/lotus-bench
 
 # runtime container stage
-FROM ubuntu:18.04
-#RUN apt-get update && \
-#    apt-get install sudo ca-certificates mesa-opencl-icd ocl-icd-opencl-dev -y && \
-#    rm -rf /var/lib/apt/lists/*
+FROM nvidia/cuda:10.1-base-ubuntu18.04 
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && \
+    apt upgrade -y && \
+    apt install jq mesa-opencl-icd ocl-icd-opencl-dev -y
 COPY --from=build-env /usr/local/bin/lotus /usr/local/bin/lotus
-COPY --from=build-env /usr/local/bin/chainwatch /usr/local/bin/chainwatch
+COPY --from=build-env /usr/local/bin/lotus-miner /usr/local/bin/lotus-miner
+COPY --from=build-env /usr/local/bin/lotus-worker /usr/local/bin/lotus-worker
+COPY --from=build-env /usr/local/bin/lotus-bench /usr/local/bin/lotus-bench
 COPY --from=build-env /etc/ssl/certs /etc/ssl/certs
 COPY LOTUS_VERSION /VERSION
 
