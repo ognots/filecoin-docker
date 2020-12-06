@@ -10,7 +10,7 @@ do
     case "${option}" in
         s) SYNC=true;;
         d) DAEMON=true;;
-        c) CHAINWATCH=true;;
+	i) IMPORT=true;;
     esac
 done
     
@@ -28,12 +28,9 @@ if [ "$SYNC" == true ] ; then
     repeat lotus sync wait
 fi
 
-if [ "$CHAINWATCH" == true ] ; then
-    echo "Starting chainwatch"
-    # Start the daemon process and put it in the background
-    lotus daemon &
-    # wait until we are sure daemon is up (chainwatch will fail if daemon is not running and return 0 even when failing so repeat is not working)
-    sleep 120
-    # Start the chainwatch process
-    repeat chainwatch run
+
+if [ "$IMPORT" == true ] ; then
+	# This only works for mainnet. See the following:
+	# https://docs.filecoin.io/get-started/lotus/chain/#syncing-from-a-full-snapshot-mainnet
+	lotus daemon --import-snapshot https://fil-chain-snapshots-fallback.s3.amazonaws.com/mainnet/minimal_finality_stateroots_latest.car
 fi
