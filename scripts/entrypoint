@@ -10,7 +10,7 @@ do
     case "${option}" in
         s) SYNC=true;;
         d) DAEMON=true;;
-	i) IMPORT=true;;
+        i) IMPORT=true;;
     esac
 done
     
