@@ -46,6 +46,8 @@ COPY --from=build-env /usr/lib/x86_64-linux-gnu/libhwloc.so.5 /lib/libhwloc.so.5
 COPY --from=build-env /usr/lib/x86_64-linux-gnu/libnuma.so.1 /lib/libnuma.so.1
 COPY --from=build-env /usr/lib/x86_64-linux-gnu/libltdl.so.7 /lib/libltdl.so.7
 
+COPY scripts/entrypoint /bin
+
 # API port
 EXPOSE 1234/tcp
 
